@@ -2,12 +2,21 @@ const pool = require('../config/db');
 
 const Perfil = {
   async create({ nomp }) {
-    const [res] = await pool.query('INSERT INTO Perfil (nomp) VALUES (?)', [nomp]);
+    const [res] = await pool.query(
+      'INSERT INTO Perfil (nomp) VALUES (?)',
+      [nomp]
+    );
     return { idp: res.insertId, nomp };
   },
 
-  async update(idp, { nomp }) {
-    await pool.query('UPDATE Perfil SET nomp=? WHERE idp=?', [nomp, idp]);
+  async update(idp, data) {
+    if (!data || Object.keys(data).length === 0) return;
+
+    // Monta dinamicamente os campos que serão atualizados
+    const fields = Object.keys(data).map(field => `${field}=?`).join(', ');
+    const values = [...Object.values(data), idp];
+
+    await pool.query(`UPDATE Perfil SET ${fields} WHERE idp=?`, values);
   },
 
   async delete(idp) {

@@ -2,14 +2,21 @@ const pool = require('../config/db');
 
 const Disponibilidade = {
   async create({ datad, horainicio, horafim, status }) {
-    const [res] = await pool.query('INSERT INTO Disponibilidade (datad, horainicio, horafim, status) VALUES (?, ?, ?, ?)',
-      [datad, horainicio, horafim, status || 'Livre']);
+    const [res] = await pool.query(
+      'INSERT INTO Disponibilidade (datad, horainicio, horafim, status) VALUES (?, ?, ?, ?)',
+      [datad, horainicio, horafim, status || 'Livre']
+    );
     return { idd: res.insertId };
   },
 
   async update(idd, data) {
-    await pool.query('UPDATE Disponibilidade SET datad=?, horainicio=?, horafim=?, status=? WHERE idd=?',
-      [data.datad, data.horainicio, data.horafim, data.status, idd]);
+    if (!data || Object.keys(data).length === 0) return;
+
+    // Monta dinamicamente os campos que serão atualizados
+    const fields = Object.keys(data).map(field => `${field}=?`).join(', ');
+    const values = [...Object.values(data), idd];
+
+    await pool.query(`UPDATE Disponibilidade SET ${fields} WHERE idd=?`, values);
   },
 
   async delete(idd) {

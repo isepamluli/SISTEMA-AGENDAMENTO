@@ -2,12 +2,21 @@ const pool = require('../config/db');
 
 const Permissao = {
   async create({ idp, nomperm }) {
-    const [res] = await pool.query('INSERT INTO Permissao (idp, nomperm) VALUES (?, ?)', [idp, nomperm]);
+    const [res] = await pool.query(
+      'INSERT INTO Permissao (idp, nomperm) VALUES (?, ?)',
+      [idp, nomperm]
+    );
     return { idperm: res.insertId, idp, nomperm };
   },
 
-  async update(idperm, { idp, nomperm }) {
-    await pool.query('UPDATE Permissao SET idp=?, nomperm=? WHERE idperm=?', [idp, nomperm, idperm]);
+  async update(idperm, data) {
+    if (!data || Object.keys(data).length === 0) return;
+
+    // Monta dinamicamente os campos a atualizar
+    const fields = Object.keys(data).map(field => `${field}=?`).join(', ');
+    const values = [...Object.values(data), idperm];
+
+    await pool.query(`UPDATE Permissao SET ${fields} WHERE idperm=?`, values);
   },
 
   async delete(idperm) {
@@ -20,7 +29,10 @@ const Permissao = {
   },
 
   async getById(idperm) {
-    const [rows] = await pool.query('SELECT * FROM Permissao WHERE idperm=?', [idperm]);
+    const [rows] = await pool.query(
+      'SELECT * FROM Permissao WHERE idperm=?',
+      [idperm]
+    );
     return rows[0];
   }
 };

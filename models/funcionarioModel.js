@@ -2,17 +2,31 @@ const pool = require('../config/db');
 
 const Funcionario = {
   async create({ nomest, email, telefone, senha }) {
-    const [res] = await pool.query('INSERT INTO Funcionario (nomest, email, telefone, senha) VALUES (?, ?, ?, ?)', [nomest, email, telefone, senha]);
+    const [res] = await pool.query(
+      'INSERT INTO Funcionario (nomest, email, telefone, senha) VALUES (?, ?, ?, ?)',
+      [nomest, email, telefone ?? null, senha]
+    );
     return { idf: res.insertId, nomest, email, telefone };
   },
 
-  async update(idf, { nomest, email, telefone, senha }) {
-    // se senha for fornecida, atualiza também
-    if (senha) {
-      await pool.query('UPDATE Funcionario SET nomest=?, email=?, telefone=?, senha=? WHERE idf=?', [nomest, email, telefone, senha, idf]);
-    } else {
-      await pool.query('UPDATE Funcionario SET nomest=?, email=?, telefone=? WHERE idf=?', [nomest, email, telefone, idf]);
-    }
+  async update(idf, data) {
+    // monta SET dinâmico com apenas os campos enviados
+    const fields = [];
+    const values = [];
+
+    if (data.nomest !== undefined)   { fields.push('nomest = ?');   values.push(data.nomest); }
+    if (data.email !== undefined)    { fields.push('email = ?');    values.push(data.email); }
+    if (data.telefone !== undefined) { fields.push('telefone = ?'); values.push(data.telefone); }
+    if (data.senha !== undefined)    { fields.push('senha = ?');    values.push(data.senha); }
+
+    if (fields.length === 0) return 0;
+
+    values.push(idf);
+    const [res] = await pool.query(
+      `UPDATE Funcionario SET ${fields.join(', ')} WHERE idf = ?`,
+      values
+    );
+    return res.affectedRows;
   },
 
   async delete(idf) {
@@ -43,11 +57,9 @@ const Funcionario = {
   },
 
   async callGetAgendaPorUsuario(idf) {
-    // chama procedure GetAgendaPorUsuario
     const conn = await pool.getConnection();
     try {
       const [rows] = await conn.query('CALL GetAgendaPorUsuario(?)', [idf]);
-      // resultado vem em rows[0]
       return rows[0] || rows;
     } finally {
       conn.release();

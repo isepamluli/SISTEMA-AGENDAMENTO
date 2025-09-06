@@ -2,14 +2,32 @@ const pool = require('../config/db');
 
 const Ambiente = {
   async create({ nomea, descricao, numeroa, capacidade, tipoambiente }) {
-    const [res] = await pool.query('INSERT INTO Ambientes (nomea, descricao, numeroa, capacidade, tipoambiente) VALUES (?, ?, ?, ?, ?)',
-      [nomea, descricao, numeroa, capacidade, tipoambiente]);
-    return { ida: res.insertId };
+    const [res] = await pool.query(
+      'INSERT INTO Ambientes (nomea, descricao, numeroa, capacidade, tipoambiente) VALUES (?, ?, ?, ?, ?)',
+      [nomea, descricao, numeroa, capacidade, tipoambiente]
+    );
+
+    return { ida: res.insertId, nomea, descricao, numeroa, capacidade, tipoambiente };
   },
 
-  async update(ida, data) {
-    await pool.query('UPDATE Ambientes SET nomea=?, descricao=?, numeroa=?, capacidade=?, tipoambiente=? WHERE ida=?',
-      [data.nomea, data.descricao, data.numeroa, data.capacidade, data.tipoambiente, ida]);
+  async update(ida, payload) {
+    const current = await this.getById(ida);
+    if (!current) return null;
+
+    const data = {
+      nomea: payload.nomea || current.nomea,
+      descricao: payload.descricao || current.descricao,
+      numeroa: payload.numeroa || current.numeroa,
+      capacidade: payload.capacidade !== undefined ? payload.capacidade : current.capacidade,
+      tipoambiente: payload.tipoambiente || current.tipoambiente
+    };
+
+    await pool.query(
+      'UPDATE Ambientes SET nomea=?, descricao=?, numeroa=?, capacidade=?, tipoambiente=? WHERE ida=?',
+      [data.nomea, data.descricao, data.numeroa, data.capacidade, data.tipoambiente, ida]
+    );
+
+    return await this.getById(ida);
   },
 
   async delete(ida) {
@@ -36,7 +54,10 @@ const Ambiente = {
 
   async listarRecursos(ida) {
     const [rows] = await pool.query(
-      'SELECT r.* FROM Recursos r JOIN AmbienteRecurso ar ON r.idr = ar.idr WHERE ar.ida = ?',
+      `SELECT r.* 
+       FROM Recursos r 
+       JOIN AmbienteRecurso ar ON r.idr = ar.idr 
+       WHERE ar.ida = ?`,
       [ida]
     );
     return rows;

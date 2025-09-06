@@ -3,17 +3,44 @@ const pool = require('../config/db');
 const Agendamento = {
   async create({ dataag, horainicio, horafim, eventoag, segmento, qtdpessoas, status, idf, ida, idd }) {
     const [res] = await pool.query(
-      'INSERT INTO Agendamento (dataag, horainicio, horafim, eventoag, segmento, qtdpessoas, status, idf, ida, idd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      `INSERT INTO Agendamento 
+       (dataag, horainicio, horafim, eventoag, segmento, qtdpessoas, status, idf, ida, idd) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [dataag, horainicio, horafim, eventoag, segmento, qtdpessoas, status || 'Pendente', idf, ida, idd]
     );
-    return { idag: res.insertId };
+    return { 
+      idag: res.insertId, 
+      dataag, horainicio, horafim, eventoag, segmento, qtdpessoas, 
+      status: status || 'Pendente', idf, ida, idd 
+    };
   },
 
-  async update(idag, data) {
+  async update(idag, payload) {
+    const current = await this.getById(idag);
+    if (!current) return null;
+
+    // mantém valores antigos se não forem enviados
+    const data = {
+      dataag: payload.dataag || current.dataag,
+      horainicio: payload.horainicio || current.horainicio,
+      horafim: payload.horafim || current.horafim,
+      eventoag: payload.eventoag || current.eventoag,
+      segmento: payload.segmento || current.segmento,
+      qtdpessoas: payload.qtdpessoas !== undefined ? payload.qtdpessoas : current.qtdpessoas,
+      status: payload.status || current.status,
+      idf: payload.idf || current.idf,
+      ida: payload.ida || current.ida,
+      idd: payload.idd || current.idd
+    };
+
     await pool.query(
-      'UPDATE Agendamento SET dataag=?, horainicio=?, horafim=?, eventoag=?, segmento=?, qtdpessoas=?, status=?, idf=?, ida=?, idd=? WHERE idag=?',
+      `UPDATE Agendamento 
+       SET dataag=?, horainicio=?, horafim=?, eventoag=?, segmento=?, qtdpessoas=?, status=?, idf=?, ida=?, idd=? 
+       WHERE idag=?`,
       [data.dataag, data.horainicio, data.horafim, data.eventoag, data.segmento, data.qtdpessoas, data.status, data.idf, data.ida, data.idd, idag]
     );
+
+    return await this.getById(idag);
   },
 
   async delete(idag) {
@@ -45,11 +72,13 @@ const Agendamento = {
   async listarFiltrado({ status, ida, idf, dataInicio, dataFim } = {}) {
     let sql = 'SELECT * FROM Agendamento WHERE 1=1';
     const params = [];
+
     if (status) { sql += ' AND status=?'; params.push(status); }
     if (ida) { sql += ' AND ida=?'; params.push(ida); }
     if (idf) { sql += ' AND idf=?'; params.push(idf); }
     if (dataInicio) { sql += ' AND dataag>=?'; params.push(dataInicio); }
     if (dataFim) { sql += ' AND dataag<=?'; params.push(dataFim); }
+
     const [rows] = await pool.query(sql, params);
     return rows;
   }

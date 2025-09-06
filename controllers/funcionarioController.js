@@ -6,28 +6,23 @@ module.exports = {
   async create(req, res) {
     try {
       const { nomest, email, telefone, senha } = req.body;
-
-      // Campos obrigatórios
       if (!nomest?.trim() || !email?.trim() || !senha) {
         return res.status(400).json({ error: 'nomest, email e senha são obrigatórios' });
       }
 
       const hashed = await bcrypt.hash(senha, 8);
-
-      const novo = await Funcionario.create({ 
-        nomest: nomest.trim(), 
-        email: email.trim(), 
-        telefone: telefone || null, 
-        senha: hashed 
+      const novo = await Funcionario.create({
+        nomest: nomest.trim(),
+        email: email.trim(),
+        telefone: telefone || null,
+        senha: hashed
       });
 
-      res.json({
-        idf: novo.idf,
-        nomest: novo.nomest,
-        email: novo.email,
-        telefone: novo.telefone
-      });
+      res.json(novo);
     } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ error: 'E-mail já cadastrado' });
+      }
       res.status(500).json({ error: err.message });
     }
   },
@@ -60,33 +55,29 @@ module.exports = {
       const { idf } = req.params;
       const { nomest, email, telefone, senha } = req.body;
 
-      // Busca funcionário atual
       const funcionarioAtual = await Funcionario.getById(idf);
-      if (!funcionarioAtual) return res.status(404).json({ error: 'Funcionário não encontrado' });
-
-      // Prepara payload mantendo valores atuais se não forem enviados
-      const payload = {
-        nomest: nomest?.trim() || funcionarioAtual.nomest,
-        email: email?.trim() || funcionarioAtual.email,
-        telefone: telefone !== undefined ? telefone : funcionarioAtual.telefone,
-        senha: senha ? await bcrypt.hash(senha, 8) : funcionarioAtual.senha
-      };
-
-      // Evita enviar null para campos obrigatórios
-      if (!payload.nomest || !payload.email) {
-        return res.status(400).json({ error: 'nomest e email não podem ser nulos' });
+      if (!funcionarioAtual) {
+        return res.status(404).json({ error: 'Funcionário não encontrado' });
       }
 
-      await Funcionario.update(idf, payload);
+      const payload = {
+        nomest: nomest?.trim() ?? funcionarioAtual.nomest,
+        email: email?.trim() ?? funcionarioAtual.email,
+        telefone: telefone !== undefined ? telefone : funcionarioAtual.telefone,
+        senha: senha ? await bcrypt.hash(senha, 8) : undefined
+      };
+
+      const affected = await Funcionario.update(idf, payload);
+      if (affected === 0) {
+        return res.status(400).json({ error: 'Nenhum campo atualizado' });
+      }
 
       const updated = await Funcionario.getById(idf);
-      res.json({
-        idf: updated.idf,
-        nomest: updated.nomest,
-        email: updated.email,
-        telefone: updated.telefone
-      });
+      res.json(updated);
     } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ error: 'E-mail já cadastrado' });
+      }
       res.status(500).json({ error: err.message });
     }
   },
@@ -106,7 +97,9 @@ module.exports = {
   async login(req, res) {
     try {
       const { email, senha } = req.body;
-      if (!email?.trim() || !senha) return res.status(400).json({ error: 'Email e senha são obrigatórios' });
+      if (!email?.trim() || !senha) {
+        return res.status(400).json({ error: 'Email e senha são obrigatórios' });
+      }
 
       const user = await Funcionario.findByEmail(email.trim());
       if (!user) return res.status(401).json({ message: 'Credenciais inválidas' });
@@ -134,7 +127,7 @@ module.exports = {
     }
   },
 
-  // Obter agenda do funcionário via procedure
+  // Obter agenda via procedure
   async getAgendaByUsuario(req, res) {
     try {
       const { idf } = req.params;
