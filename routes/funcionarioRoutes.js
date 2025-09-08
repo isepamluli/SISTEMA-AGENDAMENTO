@@ -2,8 +2,10 @@ const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/funcionarioController');
 
-// rotas específicas primeiro
+// Login deve vir primeiro
 router.post('/login', ctrl.login);
+
+// Rotas específicas
 router.get('/:idf/perfis', ctrl.listarPerfis);
 router.get('/:idf/agenda', ctrl.getAgendaByUsuario);
 

@@ -7,7 +7,7 @@ module.exports = {
     try {
       const { nomest, email, telefone, senha } = req.body;
       if (!nomest?.trim() || !email?.trim() || !senha) {
-        return res.status(400).json({ error: 'nomest, email e senha são obrigatórios' });
+        return res.status(400).json({ message: 'nomest, email e senha são obrigatórios' });
       }
 
       const hashed = await bcrypt.hash(senha, 8);
@@ -18,12 +18,12 @@ module.exports = {
         senha: hashed
       });
 
-      res.json(novo);
+      res.status(201).json(novo);
     } catch (err) {
       if (err.code === 'ER_DUP_ENTRY') {
-        return res.status(409).json({ error: 'E-mail já cadastrado' });
+        return res.status(409).json({ message: 'E-mail já cadastrado' });
       }
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ message: 'Erro ao criar funcionário', detalhe: err.message });
     }
   },
 
@@ -33,7 +33,7 @@ module.exports = {
       const rows = await Funcionario.getAll();
       res.json(rows);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ message: 'Erro ao listar funcionários', detalhe: err.message });
     }
   },
 
@@ -42,10 +42,10 @@ module.exports = {
     try {
       const { idf } = req.params;
       const row = await Funcionario.getById(idf);
-      if (!row) return res.status(404).json({ error: 'Funcionário não encontrado' });
+      if (!row) return res.status(404).json({ message: 'Funcionário não encontrado' });
       res.json(row);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ message: 'Erro ao buscar funcionário', detalhe: err.message });
     }
   },
 
@@ -57,28 +57,31 @@ module.exports = {
 
       const funcionarioAtual = await Funcionario.getById(idf);
       if (!funcionarioAtual) {
-        return res.status(404).json({ error: 'Funcionário não encontrado' });
+        return res.status(404).json({ message: 'Funcionário não encontrado' });
       }
 
       const payload = {
         nomest: nomest?.trim() ?? funcionarioAtual.nomest,
         email: email?.trim() ?? funcionarioAtual.email,
-        telefone: telefone !== undefined ? telefone : funcionarioAtual.telefone,
-        senha: senha ? await bcrypt.hash(senha, 8) : undefined
+        telefone: telefone !== undefined ? telefone : funcionarioAtual.telefone
       };
+
+      if (senha) {
+        payload.senha = await bcrypt.hash(senha, 8);
+      }
 
       const affected = await Funcionario.update(idf, payload);
       if (affected === 0) {
-        return res.status(400).json({ error: 'Nenhum campo atualizado' });
+        return res.status(400).json({ message: 'Nenhum campo atualizado' });
       }
 
       const updated = await Funcionario.getById(idf);
       res.json(updated);
     } catch (err) {
       if (err.code === 'ER_DUP_ENTRY') {
-        return res.status(409).json({ error: 'E-mail já cadastrado' });
+        return res.status(409).json({ message: 'E-mail já cadastrado' });
       }
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ message: 'Erro ao atualizar funcionário', detalhe: err.message });
     }
   },
 
@@ -89,7 +92,7 @@ module.exports = {
       await Funcionario.delete(idf);
       res.json({ message: 'Funcionário excluído' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ message: 'Erro ao excluir funcionário', detalhe: err.message });
     }
   },
 
@@ -98,7 +101,7 @@ module.exports = {
     try {
       const { email, senha } = req.body;
       if (!email?.trim() || !senha) {
-        return res.status(400).json({ error: 'Email e senha são obrigatórios' });
+        return res.status(400).json({ message: 'Email e senha são obrigatórios' });
       }
 
       const user = await Funcionario.findByEmail(email.trim());
@@ -112,7 +115,7 @@ module.exports = {
         user: { idf: user.idf, nomest: user.nomest, email: user.email, telefone: user.telefone }
       });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ message: 'Erro no login', detalhe: err.message });
     }
   },
 
@@ -123,7 +126,7 @@ module.exports = {
       const rows = await Funcionario.listPerfis(idf);
       res.json(rows);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ message: 'Erro ao listar perfis', detalhe: err.message });
     }
   },
 
@@ -134,7 +137,7 @@ module.exports = {
       const rows = await Funcionario.callGetAgendaPorUsuario(idf);
       res.json(rows);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ message: 'Erro ao obter agenda', detalhe: err.message });
     }
   }
 };
