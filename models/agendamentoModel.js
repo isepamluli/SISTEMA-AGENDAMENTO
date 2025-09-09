@@ -8,11 +8,7 @@ const Agendamento = {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [dataag, horainicio, horafim, eventoag, segmento, qtdpessoas, status || 'Pendente', idf, ida, idd]
     );
-    return { 
-      idag: res.insertId, 
-      dataag, horainicio, horafim, eventoag, segmento, qtdpessoas, 
-      status: status || 'Pendente', idf, ida, idd 
-    };
+    return await this.getById(res.insertId);
   },
 
   async update(idag, payload) {
@@ -21,16 +17,16 @@ const Agendamento = {
 
     // mantém valores antigos se não forem enviados
     const data = {
-      dataag: payload.dataag || current.dataag,
-      horainicio: payload.horainicio || current.horainicio,
-      horafim: payload.horafim || current.horafim,
-      eventoag: payload.eventoag || current.eventoag,
-      segmento: payload.segmento || current.segmento,
-      qtdpessoas: payload.qtdpessoas !== undefined ? payload.qtdpessoas : current.qtdpessoas,
-      status: payload.status || current.status,
-      idf: payload.idf || current.idf,
-      ida: payload.ida || current.ida,
-      idd: payload.idd || current.idd
+      dataag: payload.dataag ?? current.dataag,
+      horainicio: payload.horainicio ?? current.horainicio,
+      horafim: payload.horafim ?? current.horafim,
+      eventoag: payload.eventoag ?? current.eventoag,
+      segmento: payload.segmento ?? current.segmento,
+      qtdpessoas: payload.qtdpessoas ?? current.qtdpessoas,
+      status: payload.status ?? current.status,
+      idf: payload.idf ?? current.idf,
+      ida: payload.ida ?? current.ida,
+      idd: payload.idd ?? current.idd
     };
 
     await pool.query(
@@ -59,14 +55,37 @@ const Agendamento = {
 
   async cancelar(idag) {
     await pool.query('UPDATE Agendamento SET status="Cancelado" WHERE idag=?', [idag]);
+    return await this.getById(idag);
   },
 
   async confirmar(idag) {
     await pool.query('UPDATE Agendamento SET status="Aprovado" WHERE idag=?', [idag]);
+    return await this.getById(idag);
   },
 
   async solicitarRecurso(idag, idr) {
-    await pool.query('INSERT INTO AgendamentoRecurso (idag, idr) VALUES (?, ?)', [idag, idr]);
+    await pool.query(
+      'INSERT INTO AgendamentoRecurso (idag, idr) VALUES (?, ?)',
+      [idag, idr]
+    );
+  },
+
+  async listarRecursos(idag) {
+    const [rows] = await pool.query(
+      `SELECT r.* 
+       FROM AgendamentoRecurso ar
+       JOIN Recursos r ON r.idr = ar.idr
+       WHERE ar.idag = ?`,
+      [idag]
+    );
+    return rows;
+  },
+
+  async removerRecurso(idag, idr) {
+    await pool.query(
+      'DELETE FROM AgendamentoRecurso WHERE idag = ? AND idr = ?',
+      [idag, idr]
+    );
   },
 
   async listarFiltrado({ status, ida, idf, dataInicio, dataFim } = {}) {

@@ -42,7 +42,7 @@ module.exports = {
 
   async atribuir(req, res) {
     try {
-      await PerfilPermissao.assign(req.body); // { idp, idperm }
+      await PerfilPermissao.create(req.body.idPerfil, req.body.idPermissao);
       res.json({ message: 'Permissão atribuída ao perfil' });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -51,7 +51,7 @@ module.exports = {
 
   async remover(req, res) {
     try {
-      await PerfilPermissao.remove(req.body);
+      await PerfilPermissao.deleteByPerfilPermissao(req.body.idPerfil, req.body.idPermissao);
       res.json({ message: 'Permissão removida do perfil' });
     } catch (err) {
       res.status(500).json({ error: err.message });

@@ -11,8 +11,13 @@ router.delete('/:idag', ctrl.delete);
 
 router.post('/:idag/cancelar', ctrl.cancelar);
 router.post('/:idag/confirmar', ctrl.confirmar);
-router.post('/:idag/solicitar-recurso', ctrl.solicitarRecurso);
 
+// Recursos do agendamento
+router.post('/:idag/solicitar-recurso', ctrl.solicitarRecurso);
+router.get('/:idag/recursos', ctrl.listarRecursos);
+router.delete('/:idag/recursos/:idr', ctrl.removerRecurso);
+
+// Disponibilidade
 router.post('/verificar-disponibilidade', ctrl.verificarDisponibilidade);
 
 module.exports = router;

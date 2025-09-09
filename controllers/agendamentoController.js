@@ -4,11 +4,10 @@ const Disponibilidade = require('../models/disponibilidadeModel');
 module.exports = {
   async create(req, res) {
     try {
-      const { dataag, horainicio, horafim, eventoag } = req.body;
-      if (!dataag || !horainicio || !horafim || !eventoag) {
-        return res.status(400).json({ error: 'Campos obrigatórios: dataag, horainicio, horafim, eventoag' });
+      const { dataag, horainicio, horafim, eventoag, segmento, qtdpessoas, idf, ida, idd } = req.body;
+      if (!dataag || !horainicio || !horafim || !eventoag || !segmento || !qtdpessoas || !idf || !ida || !idd) {
+        return res.status(400).json({ error: 'Campos obrigatórios: dataag, horainicio, horafim, eventoag, segmento, qtdpessoas, idf, ida, idd' });
       }
-
       const novo = await Agendamento.create(req.body);
       res.json(novo);
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -62,9 +61,22 @@ module.exports = {
     try {
       const { idr } = req.body;
       if (!idr) return res.status(400).json({ error: 'É necessário informar o idr do recurso' });
-
       await Agendamento.solicitarRecurso(req.params.idag, idr);
       res.json({ message: 'Recurso solicitado para agendamento' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+  },
+
+  async listarRecursos(req, res) {
+    try {
+      const rows = await Agendamento.listarRecursos(req.params.idag);
+      res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+  },
+
+  async removerRecurso(req, res) {
+    try {
+      await Agendamento.removerRecurso(req.params.idag, req.params.idr);
+      res.json({ message: 'Recurso removido do agendamento' });
     } catch (err) { res.status(500).json({ error: err.message }); }
   },
 
@@ -74,7 +86,6 @@ module.exports = {
       if (!datad || !horainicio || !horafim) {
         return res.status(400).json({ error: 'Campos obrigatórios: datad, horainicio, horafim' });
       }
-
       const ok = await Disponibilidade.verificarPeriodo(datad, horainicio, horafim);
       res.json({ disponivel: ok });
     } catch (err) { res.status(500).json({ error: err.message }); }
